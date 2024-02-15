@@ -1,15 +1,18 @@
 import pygame
+from spell import *
+import math
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, position, blocks_player, group):
         super().__init__(group)
-        self.image = pygame.Surface((25,25))
+        self.group = group
+        self.image = pygame.Surface((16,16))
         self.rect = self.image.get_rect(topleft = position)
         self.image.fill('blue')
         self.player_move = pygame.math.Vector2()
         self.speed = 7
-        self.spell_group = pygame.sprite.Group()
         self.blocks_player = blocks_player
+        self.spell_group = pygame.sprite.Group()
 
     def player_input(self):
         keys = pygame.key.get_pressed()
@@ -27,6 +30,11 @@ class Player(pygame.sprite.Sprite):
             self.player_move.x = -1
         else:
             self.player_move.x = 0
+
+        if pygame.mouse.get_pressed()[0]:  #and len(self.spell_group) < 6: 
+            
+            spell = Spell((self.rect.x + 12,self.rect.y + 12), self.group, self.blocks_player)
+            self.spell_group.add(spell)
 
     def moving(self):
         self.rect.centerx += self.player_move.x * self.speed
