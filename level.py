@@ -8,7 +8,19 @@ import numpy as np
 
 
 class LevelBase():
+    """
+    This class handles the setup and behavior of a single level in the game.
+    It manages the creation of blocks, enemies, items, music, and player actions.
+    """
     def __init__(self, screen, level_date_table, important_table):
+        """
+        Initializes the level with a given screen, level data table, and important settings.
+
+        Args:
+            screen (pygame.Surface): The display screen for rendering the game.
+            level_date_table (list): The table containing the level layout data.
+            important_table (list): A table containing flags for special music type condition.
+        """
         self.screen = screen
         self.level_number = 0
         self.level_date = level_date_table[self.level_number]
@@ -45,6 +57,13 @@ class LevelBase():
         self.setup_level(self.level_date)
         
     def setup_level(self, level_date):
+        """
+        Sets up the level by processing the level data and creating appropriate game elements 
+        such as blocks, enemies, items, music, and special objects.
+
+        Args:
+            level_date (list): The layout of the level containing the block and item definitions.
+        """
 
         if self.important_table[0] == True:
             self.linear_music()
@@ -126,7 +145,7 @@ class LevelBase():
                 #end_level
 
                 if cell == 30:
-                    self.end_level = EndLevel(BLOCK_SIZE, (x,y),[self.sprite_group])
+                    self.end_level = EndLevel((x,y),[self.sprite_group])
                     self.end_group.add(self.end_level)
 
                 #key
@@ -174,11 +193,13 @@ class LevelBase():
         self.all_sprites.add(self.end_group)
 
     def linear_music(self):
+        """Plays the linear background music."""
         self.music = pygame.mixer.Sound('linear/super_mario.mp3')
         self.music.set_volume(0.8)
         self.music.play(loops=-1)
 
     def adaptive_music(self):
+        """Plays the adaptive background music based on the current game state (e.g., exploration, battle)."""
         sound_paths = {
             "exploration": "adaptive/Exploration.mp3",
             "close_to_enemy": "adaptive/Enemy.mp3",
@@ -192,6 +213,10 @@ class LevelBase():
         self.music.set_volume(0.8)
 
     def generative_music(self):
+        """
+        Plays the generative background music based on the current game state (e.g., exploration, battle).
+        Function contain implementation of Markov chains based on chord progression
+        """
         self.calm_chords_mp3 = {
             'C Major': 'test_2/C Major.mp3',
             'Dm7': 'test_2/Dm7.mp3',
@@ -301,14 +326,35 @@ class LevelBase():
         
     
     def get_next_chord(self, current_index, transition_matrix):
+        """
+        Retrieves the next chord index based on the current index and transition matrix probabilities.
+        
+        Args:
+            current_index (int): The index of the current chord.
+            transition_matrix (list): A matrix containing the probabilities for transitioning to the next chord.
+        
+        Returns:
+            int: The index of the next chord.
+        """
         probabilities = transition_matrix[current_index]
         next_index = np.random.choice(len(probabilities), p=probabilities)
         return next_index
 
     def play_chord(self, channel, chord_mp3):
+        """
+        Plays a chord sound through the specified channel.
+        
+        Args:
+            channel (pygame.mixer.Channel): The channel through which to play the sound.
+            chord_mp3 (str): The path to the MP3 file of the chord sound.
+        """
         channel.play(pygame.mixer.Sound(chord_mp3))
 
     def music_generator(self):
+        """
+        Generates and plays music based on the current game state. Transitions between calm and tension-based chords 
+        depending on the player's situation in the game (battle, exploration, etc.).
+        """
         current_time = pygame.time.get_ticks()
         #print(self.next_time, current_time)
         if current_time >= self.next_time:
@@ -349,6 +395,10 @@ class LevelBase():
             
 
     def check_state(self):
+        """
+        Checks if the game state has changed and updates the background music accordingly. 
+        Fades out the current music and fades in the new music for the new state.
+        """
         if self.current_state != self.game_state:
             if self.music:
                 self.music.fadeout(self.fade_duration)
@@ -362,6 +412,7 @@ class LevelBase():
 
 
     def update_volume(self):
+        """Updates the volume of the background music to create a fade-in effect based on elapsed time."""
         if self.is_fading:
             elapsed_time = pygame.time.get_ticks() - self.fade_start_time
             fraction = min(elapsed_time / self.fade_duration, 1.0)
@@ -376,6 +427,10 @@ class LevelBase():
 
 
     def bullet_enemy_collision(self):
+        """
+        Checks for collisions between player spells and enemies. 
+        Reduces the health of enemies hit by a spell.
+        """
         if self.spell_group:
             for spell in self.spell_group:
                 coll = pygame.sprite.spritecollide(spell, self.enemy_group, False)
@@ -386,6 +441,10 @@ class LevelBase():
                     spell.kill()
 
     def spell_player_collision(self):
+        """
+        Checks for collisions between enemy spells and the player. 
+        Reduces the player's health if hit by an enemy spell.
+        """
         if self.enemy_spell_group:
             for spell in self.enemy_spell_group:
                 coll = pygame.sprite.spritecollide(spell, self.player_group, False)
@@ -394,6 +453,10 @@ class LevelBase():
                     spell.kill()
 
     def sword_enemy_collision(self):
+        """
+        Checks for collisions between the player's sword and enemies. 
+        Kills enemies that are hit by the sword.
+        """
         if self.sword:
             coll = pygame.sprite.spritecollide(self.sword, self.enemy_group, False)
             if coll:
@@ -402,6 +465,10 @@ class LevelBase():
                 self.player.hide_sword()
 
     def player_potion_collisons(self):
+        """
+        Checks for collisions between the player and potions. 
+        Grants health or mana based on the potion type.
+        """
         coll = pygame.sprite.spritecollide(self.player, self.potion_group, False)
         if coll:
             for potion in coll:
@@ -413,6 +480,10 @@ class LevelBase():
                 potion.kill()
 
     def player_enemy_collisons(self):
+        """
+        Checks for collisions between the player and enemies. 
+        Damages the player based on the enemy's attack and kills the enemy.
+        """
         coll = pygame.sprite.spritecollide(self.player, self.enemy_group, False)
         if coll:
             for enemy in coll:
@@ -421,11 +492,23 @@ class LevelBase():
                 enemy.kill()
 
     def take_key(self):
+        """
+        Checks if the player has collided with the key item. 
+        If so, the key is collected, and the player can use it later.
+        """
         if self.player.rect.colliderect(self.key):
             self.key.kill()
             self.have_key = True
 
+        if self.have_key:
+            #pygame.draw.rect(self.screen, (0,0,255),(100,300, 10, 15))
+            self.screen.blit(pygame.image.load('images/tiles/tile092.png').convert_alpha(), (220,15))
+
     def collide_end(self):
+        """
+        Checks for collisions between the player and the level's end point. 
+        If the player has the key, they can progress to the next level.
+        """
         if self.player.rect.colliderect(self.end_level) and self.have_key == True:
             if self.number_of_level <= self.level_number +1:
                 self.end_game = True
@@ -453,11 +536,13 @@ class LevelBase():
                 self.next_level()
 
     def get_mouse_direciton(self):
+        """Retrieves the direction from the player to the mouse cursor."""
         mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
         player_pos = pygame.Vector2(W/2, H/2)
         self.player_direction = (mouse_pos - player_pos).normalize()
 
     def get_distance_to_enemy(self):
+        """Calculates and stores the distance from the player to each enemy."""
         self.enemy_dict = {}
         for enemy in self.enemy_group:
             distance = ((self.player.rect.centerx - enemy.rect.centerx)**2 + (self.player.rect.centery - enemy.rect.centery)**2)**(1/2)
@@ -465,6 +550,10 @@ class LevelBase():
 
 
     def update_game_state(self):
+        """
+        Updates the game state based on the distance to the nearest enemy.
+        Transitions between exploration, close to enemy, and battle states.
+        """
         if self.enemy_dict:
             #print(min(self.enemy_dict.values()))
             if min(self.enemy_dict.values()) < 400 and min(self.enemy_dict.values()) > 200:
@@ -475,11 +564,13 @@ class LevelBase():
                 self.game_state = 'exploration'
         else:
             self.game_state = 'exploration'
-        
-        
 
 
     def magic_attack(self):
+        """
+        Triggers a magic attack when the player clicks the mouse. 
+        Ensures that the player has enough mana and that the cooldown has passed.
+        """
         if pygame.mouse.get_pressed()[0] and self.can_shoot:
             current_time = pygame.time.get_ticks()
             if current_time - self.last_attack_time > self.attack_cooldown and self.player.current_mana >= 100:
@@ -490,21 +581,28 @@ class LevelBase():
                 self.last_attack_time = current_time
     
     def sword_attack(self):
+        """Triggers a sword attack for the player."""
         self.sword = Sword(self.player, [self.sprite_group])
 
     def hide_sword(self):
+        """Hides the player's sword if it is active."""
         if self.sword:
             self.sword.kill()
             self.sword = None 
         self.sword = None 
 
     def next_level(self):
+        """Sets up the next level and loads its corresponding map."""
         self.level_date = level_date_tabel[self.level_number]
         self.setup_level(self.level_date)
         self.sprite_group.back = pygame.image.load(level_map_table[self.level_number]).convert()
 
 
     def update(self):
+        """
+        Updates the game by processing collisions, checking the game state, and performing actions such as 
+        magic and sword attacks, key collection, and level transitions.
+        """
         self.get_distance_to_enemy()
         self.get_mouse_direciton()
         self.update_game_state()
@@ -513,7 +611,7 @@ class LevelBase():
         self.sword_enemy_collision()
         self.player_potion_collisons()
         self.player_enemy_collisons()
-        self.take_key()
+        
         if self.important_table[1] == True:
             self.check_state()
             self.update_volume()
@@ -532,17 +630,34 @@ class LevelBase():
         self.sprite_group.update()
         self.sprite_group.custom_draw(self.player)
         #self.player.update() -> self.sprite_group.update() już to wykonuje
+        self.take_key()
         self.player.health_bar_logic()
         self.player.mana_bar_logic()
+
+
         self.collide_end()
         if self.end_game == True or self.player.is_dead == True:
             if self.important_table[2] != True:
                 self.music.stop()
 
-            return -1
+            if self.end_game == True:
+                return -1
+
+            elif self.player.is_dead == True:
+                return -2
 
 class Allsprites(pygame.sprite.Group):
+    """
+    A class extending pygame.sprite.Group that manages all sprites on the screen,
+    allowing them to be drawn and offset relative to the player's position.
+    """
     def __init__(self, lev_number):
+        """
+        Initializes the sprite group and sets the level background based on the level number.
+
+        Parameters:
+            lev_number (int): The level number that determines which background will be loaded.
+        """
         super().__init__()
         self.display_surface = pygame.display.get_surface()
         self.half_width = self.display_surface.get_size()[0] // 2
@@ -552,6 +667,14 @@ class Allsprites(pygame.sprite.Group):
         self.back_rect = self.back.get_rect(topleft = (0,0))
         
     def custom_draw(self,player):
+        """
+        Draws all sprites on the screen, offsetting them relative to the player's position.
+        The background is also drawn to follow the player's position in the game world.
+
+        Parameters:
+            player (pygame.sprite.Sprite): The player object whose position will determine
+                                           the offset of all objects on the screen.
+        """
         self.offset.x = player.rect.centerx - self.half_width
         self.offset.y = player.rect.centery - self.half_height
         
